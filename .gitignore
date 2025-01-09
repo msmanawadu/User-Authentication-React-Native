@@ -2,6 +2,7 @@
 
 # Custom file
 util/auth.js
+screens/WelcomeScreen.js
 
 # dependencies
 node_modules/

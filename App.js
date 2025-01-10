@@ -1,7 +1,9 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useState, useCallback } from 'react';
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 
 import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
@@ -9,6 +11,7 @@ import WelcomeScreen from './screens/WelcomeScreen';
 import IconButton from './components/ui/IconButton';
 import { Colors } from './constants/styles';
 import AuthContextProvider, { AuthContext } from './store/auth-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,7 +32,6 @@ function AuthStack() {
 
 function AuthenticatedStack() {
 	// Protected screen: Mounted only if user is authenticated
-
 	const authCtx = useContext(AuthContext);
 	return (
 		<Stack.Navigator
@@ -59,7 +61,6 @@ function AuthenticatedStack() {
 
 function Navigation() {
 	const authCtx = useContext(AuthContext);
-
 	// Conditionally render the protected screen
 	return (
 		<NavigationContainer>
@@ -69,12 +70,46 @@ function Navigation() {
 	);
 }
 
+function Root() {
+	const [appIsReady, setAppIsReady] = useState(false);
+	const authCtx = useContext(AuthContext);
+
+	useEffect(() => {
+		async function fetchToken() {
+			// Load auth token from local storage
+			const storedToken = await AsyncStorage.getItem('token');
+
+			if (storedToken) {
+				authCtx.authenticate(storedToken);
+			}
+			setAppIsReady(true);
+		}
+		fetchToken();
+	}, []);
+
+	const onLayoutRootView = useCallback(() => {
+		if (appIsReady) {
+			SplashScreen.hide();
+		}
+	}, [appIsReady]);
+
+	if (!appIsReady) {
+		return null;
+	}
+
+	return (
+		<View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+			<Navigation />
+		</View>
+	);
+}
+
 export default function App() {
 	return (
 		<>
 			<StatusBar style='light' />
 			<AuthContextProvider>
-				<Navigation />
+				<Root />
 			</AuthContextProvider>
 		</>
 	);
